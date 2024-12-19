@@ -1,0 +1,87 @@
+ECHOLIST PROPRIETARY SOFTWARE LICENSE
+Version 1.0.0 (2024)
+
+1. COPYRIGHT NOTICE
+Copyright © 2024 EchoList. All Rights Reserved.
+
+This software, the EchoList marketplace platform, including but not limited to its source code, AI/ML models, API integrations, user interface designs, and all associated documentation (collectively, the "Software") is the proprietary and confidential property of EchoList.
+
+2. DEFINITIONS
+"Software" refers to the EchoList marketplace platform and includes:
+- BuyShield escrow service and protection system
+- AI Camera Tool and associated machine learning models
+- Marketplace Sync technology and algorithms
+- Multi-Platform Integration systems
+- All associated source code, documentation, and data structures
+
+3. USAGE RIGHTS
+This Software is licensed, not sold. EchoList grants you a non-transferable, non-exclusive license to use the Software subject to the following restrictions:
+
+3.1 Prohibited Activities:
+- Commercial deployment without explicit written authorization
+- Unauthorized access or reverse engineering of AI models
+- Modification of marketplace integration protocols
+- Unauthorized use of API endpoints
+- Processing of data outside approved parameters
+
+4. DISTRIBUTION
+All rights to distribute, sublicense, or transfer the Software are expressly reserved by EchoList. Specifically protected:
+- Source code and compiled applications
+- AI/ML models and training data
+- API integration protocols
+- Authentication and security mechanisms
+- Marketplace synchronization algorithms
+
+5. MODIFICATION
+No modification, adaptation, or creation of derivative works is permitted without explicit written consent from EchoList, particularly regarding:
+- Core platform functionality
+- AI and machine learning components
+- Marketplace API integrations
+- Security and transaction processing systems
+
+6. WARRANTY
+THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO:
+- Software operation and performance
+- Accuracy of AI predictions and recommendations
+- Reliability of data processing
+- Marketplace integration functionality
+- Transaction processing accuracy
+
+7. LIABILITY
+IN NO EVENT SHALL ECHOLIST BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM:
+- Financial transactions or losses
+- AI-driven decisions or recommendations
+- Data security incidents
+- Service interruptions or failures
+- Integration or synchronization errors
+
+8. COMPLIANCE REQUIREMENTS
+Users must comply with all applicable laws and regulations, including:
+- General Data Protection Regulation (GDPR)
+- Payment Card Industry Data Security Standard (PCI DSS)
+- Service Organization Control 2 (SOC 2)
+- California Consumer Privacy Act (CCPA)
+
+9. TERMINATION
+EchoList reserves the right to terminate this license immediately upon:
+- Unauthorized distribution or sharing
+- Intellectual property infringement
+- Security protocol violations
+- Compliance requirement failures
+
+A 30-day notice period applies for general breaches, with a 15-day remedy period. Immediate termination may occur for security breaches, data protection violations, or unauthorized AI model access.
+
+10. GOVERNING LAW
+This license shall be governed by the laws of the State of Delaware, United States. Any disputes shall be resolved exclusively in the courts of Delaware.
+
+11. SEVERABILITY
+If any provision of this license is found to be unenforceable or invalid, that provision shall be limited or eliminated to the minimum extent necessary so that this license shall otherwise remain in full force and effect.
+
+12. ENTIRE AGREEMENT
+This license constitutes the entire agreement between the parties with respect to the use of the Software and supersedes all prior or contemporaneous understandings regarding such subject matter.
+
+For licensing inquiries, contact:
+EchoList Legal Department
+[Contact Information]
+
+Last Updated: 2024
