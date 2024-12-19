@@ -1,0 +1,95 @@
+name: Backend CI
+
+# Trigger workflow on push and pull requests to main and develop branches
+# Only when changes are made in the backend directory
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'src/backend/**'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'src/backend/**'
+
+# Environment variables
+env:
+  NODE_VERSION: '18.x'
+  WORKING_DIRECTORY: 'src/backend'
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.WORKING_DIRECTORY }}/package-lock.json
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: npm-${{ hashFiles('${{ env.WORKING_DIRECTORY }}/package-lock.json') }}
+          restore-keys: |
+            npm-
+
+      - name: Install dependencies
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm ci
+
+      - name: Type check
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run typecheck
+
+      - name: Lint check
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run lint
+
+      - name: Run security audit
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run security:audit
+        continue-on-error: true
+
+      - name: Run unit tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run test
+        env:
+          CI: true
+
+      - name: Run integration tests
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run test:integration
+        env:
+          CI: true
+
+      - name: Upload test coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage
+          path: ${{ env.WORKING_DIRECTORY }}/coverage
+          retention-days: 14
+
+      - name: Build application
+        working-directory: ${{ env.WORKING_DIRECTORY }}
+        run: npm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: ${{ env.WORKING_DIRECTORY }}/dist
+          retention-days: 14
+
+      - name: Cache build
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.WORKING_DIRECTORY }}/dist
+          key: build-${{ github.sha }}
