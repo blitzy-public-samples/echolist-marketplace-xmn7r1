@@ -1,0 +1,49 @@
+{
+  "watch": [
+    "src/**/*.ts",
+    "src/**/*.json",
+    "src/services/**/*.ts",
+    "src/middleware/**/*.ts",
+    "src/models/**/*.ts",
+    "src/controllers/**/*.ts",
+    "src/utils/**/*.ts",
+    "src/config/**/*.json"
+  ],
+  "ignore": [
+    "src/**/*.test.ts",
+    "src/**/__tests__/*",
+    "src/**/*.spec.ts",
+    "src/**/*.mock.ts",
+    "src/**/*.d.ts",
+    "node_modules/*",
+    "dist/*",
+    "coverage/*",
+    ".git/*",
+    "logs/*"
+  ],
+  "exec": "ts-node --project tsconfig.json src/server.ts",
+  "ext": ".ts,.js,.json",
+  "env": {
+    "NODE_ENV": "development",
+    "TS_NODE_PROJECT": "./tsconfig.json",
+    "AWS_REGION": "us-east-1",
+    "PORT": "3000",
+    "LOG_LEVEL": "debug"
+  },
+  "delay": 1500,
+  "verbose": true,
+  "legacyWatch": false,
+  "restartable": "rs",
+  "colours": true,
+  "ignoreRoot": [
+    ".git",
+    "node_modules",
+    "dist",
+    "coverage"
+  ],
+  "watch_options": {
+    "followSymlinks": false,
+    "usePolling": false,
+    "interval": 1000
+  }
+}
