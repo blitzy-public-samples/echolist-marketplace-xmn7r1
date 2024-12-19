@@ -1,0 +1,191 @@
+name: Backend CD
+
+# Trigger on successful completion of Backend CI workflow
+on:
+  workflow_run:
+    workflows: ["Backend CI"]
+    types:
+      - completed
+    branches: [main, develop]
+
+# Environment variables
+env:
+  NODE_VERSION: '18.x'
+  WORKING_DIRECTORY: 'src/backend'
+  ECR_REPOSITORY: 'echolist-backend'
+  ECS_CLUSTER: 'echolist-cluster'
+  ECS_SERVICE: 'backend-service'
+  HEALTH_CHECK_INTERVAL: '30'
+  DEPLOYMENT_TIMEOUT: '600'
+  ROLLBACK_THRESHOLD: '3'
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    if: github.ref == 'refs/heads/develop'
+    environment:
+      name: staging
+      url: https://api-staging.echolist.com
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-duration-seconds: 1800
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ${{ env.WORKING_DIRECTORY }}
+          file: ${{ env.WORKING_DIRECTORY }}/Dockerfile
+          target: production
+          push: true
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:staging-${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:staging-latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to ECS Staging
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }}-staging \
+            --service ${{ env.ECS_SERVICE }} \
+            --force-new-deployment \
+            --deployment-configuration "minimumHealthyPercent=100,maximumPercent=200" \
+            --region ${{ secrets.AWS_REGION }}
+
+      - name: Monitor deployment health
+        run: |
+          ATTEMPTS=0
+          MAX_ATTEMPTS=$((${{ env.DEPLOYMENT_TIMEOUT }} / ${{ env.HEALTH_CHECK_INTERVAL }}))
+          
+          until [ $ATTEMPTS -eq $MAX_ATTEMPTS ] || aws ecs describe-services \
+            --cluster ${{ env.ECS_CLUSTER }}-staging \
+            --services ${{ env.ECS_SERVICE }} \
+            --query 'services[0].deployments[0].rolloutState' \
+            --output text | grep -q "COMPLETED"; do
+            
+            ATTEMPTS=$((ATTEMPTS + 1))
+            echo "Checking deployment status... Attempt $ATTEMPTS of $MAX_ATTEMPTS"
+            sleep ${{ env.HEALTH_CHECK_INTERVAL }}
+          done
+          
+          if [ $ATTEMPTS -eq $MAX_ATTEMPTS ]; then
+            echo "Deployment timeout reached. Initiating rollback..."
+            exit 1
+          fi
+
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-production:
+    name: Deploy to Production
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+      url: https://api.echolist.com
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          role-duration-seconds: 1800
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: true
+
+      - name: Create new task definition
+        run: |
+          TASK_DEFINITION=$(aws ecs describe-task-definition \
+            --task-definition ${{ env.ECS_SERVICE }} \
+            --query 'taskDefinition' \
+            --output json)
+          
+          echo "$TASK_DEFINITION" | jq '.containerDefinitions[0].image="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"' > task-definition.json
+          
+          aws ecs register-task-definition \
+            --cli-input-json file://task-definition.json
+
+      - name: Deploy with blue-green strategy
+        run: |
+          aws deploy create-deployment \
+            --application-name echolist-backend \
+            --deployment-group-name production \
+            --revision revisionType=AppSpecContent,appSpecContent={content='version: 0.0\nResources:\n  - TargetService:\n      Type: AWS::ECS::Service\n      Properties:\n        TaskDefinition: <TASK_DEFINITION>\n        LoadBalancerInfo:\n          ContainerName: "backend"\n          ContainerPort: 3000'} \
+            --deployment-style deploymentType=BLUE_GREEN,deploymentOption=WITH_TRAFFIC_CONTROL \
+            --blue-green-deployment-configuration terminateBlueInstancesOnDeploymentSuccess={action=TERMINATE,terminationWaitTimeInMinutes=5}
+
+      - name: Monitor deployment health
+        run: |
+          ATTEMPTS=0
+          MAX_ATTEMPTS=$((${{ env.DEPLOYMENT_TIMEOUT }} / ${{ env.HEALTH_CHECK_INTERVAL }}))
+          
+          until [ $ATTEMPTS -eq $MAX_ATTEMPTS ] || aws deploy get-deployment \
+            --deployment-id $DEPLOYMENT_ID \
+            --query 'deploymentInfo.status' \
+            --output text | grep -q "SUCCEEDED"; do
+            
+            ATTEMPTS=$((ATTEMPTS + 1))
+            echo "Checking deployment status... Attempt $ATTEMPTS of $MAX_ATTEMPTS"
+            
+            # Check for deployment failure
+            if aws deploy get-deployment \
+              --deployment-id $DEPLOYMENT_ID \
+              --query 'deploymentInfo.status' \
+              --output text | grep -q "FAILED"; then
+              echo "Deployment failed. Initiating rollback..."
+              exit 1
+            fi
+            
+            sleep ${{ env.HEALTH_CHECK_INTERVAL }}
+          done
+          
+          if [ $ATTEMPTS -eq $MAX_ATTEMPTS ]; then
+            echo "Deployment timeout reached. Initiating rollback..."
+            exit 1
+          fi
+
+      - name: Notify deployment status
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
