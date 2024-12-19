@@ -1,0 +1,118 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+package-lock.json
+yarn.lock
+
+# Build Output
+dist/
+build/
+.next/
+out/
+.nuxt/
+.serverless/
+.webpack/
+*.tsbuildinfo
+.eslintcache
+
+# Environment & Secrets
+.env
+.env.*
+*.env
+.env.development
+.env.test
+.env.staging
+.env.production
+*.pem
+*.key
+*.crt
+*.csr
+*.p12
+aws.json
+credentials.json
+*config.json
+
+# IDE & Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.project
+.classpath
+.settings/
+*.sublime-*
+
+# Testing & Debug
+coverage/
+.nyc_output/
+cypress/videos/
+cypress/screenshots/
+jest-coverage/
+__snapshots__/
+*.test.js.snap
+.pytest_cache/
+test-results/
+*.lcov
+
+# Mobile Specific
+ios/Pods/
+ios/build/
+ios/DerivedData/
+ios/*.xcuserdatad
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.hprof
+*.ipa
+*.apk
+*.aab
+
+# Logs & Temporary
+logs/
+*.log
+tmp/
+temp/
+.tmp/
+*.pid
+*.seed
+*.pid.lock
+.cache/
+.history/
+
+# AWS & Cloud
+.aws/
+.elasticbeanstalk/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraformrc
+terraform.rc
+
+# Docker
+.docker/
+*.dockerignore
+docker-compose.override.yml
+
+# System Files
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+desktop.ini
+
+# Misc Development
+.git/
+.gitattributes
+.editorconfig
+*.bak
+*.orig
+*.patch
+*.diff
+*.swm
