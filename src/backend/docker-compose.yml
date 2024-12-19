@@ -1,0 +1,99 @@
+version: '3.8'
+
+services:
+  # Main backend API service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "3000:3000"  # Application port
+      - "9229:9229"  # Debug port
+    volumes:
+      - ./src:/usr/src/app/src:delegated
+      - node_modules:/usr/src/app/node_modules
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DEBUG_PORT: 9229
+      DATABASE_URL: mysql://user:password@db:3306/echolist_dev
+      REDIS_URL: redis://cache:6379
+      RABBITMQ_URL: amqp://user:password@queue:5672
+      LOG_LEVEL: debug
+    depends_on:
+      - db
+      - cache
+      - queue
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # MySQL database service (Aurora alternative for local development)
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: echolist_dev
+      MYSQL_USER: user
+      MYSQL_PASSWORD: password
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --default-authentication-plugin=mysql_native_password
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # Redis cache service
+  cache:
+    image: redis:7.0-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+    networks:
+      - backend
+    restart: unless-stopped
+
+  # RabbitMQ message queue service
+  queue:
+    image: rabbitmq:3.11-management-alpine
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management interface
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+      RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 512MB
+    networks:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  node_modules:
+    name: echolist_node_modules
+  mysql_data:
+    name: echolist_mysql_data
+  redis_data:
+    name: echolist_redis_data
+  rabbitmq_data:
+    name: echolist_rabbitmq_data
+
+networks:
+  backend:
+    name: echolist_backend
+    driver: bridge
